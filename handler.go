@@ -205,6 +205,26 @@ func (fh *FileHandler) rotateLog() (f *os.File, err error) {
 		fh.out.Close()
 	}
 
+	logStartingSeq := byte(1)
+	for ; logStartingSeq <= fh.rotate; logStartingSeq++ {
+		_, err := os.Stat(fh.filePath + "." + strconv.Itoa(int(logStartingSeq)))
+		if os.IsNotExist(err) {
+			break
+		}
+	}
+	if logStartingSeq > fh.rotate {
+		if err := os.Remove(fh.filePath + ".1"); err != nil {
+			return nil, err
+		}
+		for s := byte(1); s < logStartingSeq-1; s++ {
+			if err := os.Rename(fh.filePath+"."+strconv.Itoa(int(s)+1), fh.filePath+"."+strconv.Itoa(int(s))); err != nil {
+				return nil, err
+			}
+		}
+		logStartingSeq = fh.rotate
+	}
+	fh.seq = logStartingSeq
+
 	rotatefile := fh.filePath + "." + strconv.Itoa(int(fh.seq))
 
 	err = os.Rename(fh.filePath, rotatefile)
