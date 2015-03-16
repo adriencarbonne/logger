@@ -40,7 +40,6 @@ package logger
 import (
 	"io"
 	"log"
-	"log/syslog"
 	"sync"
 )
 
@@ -140,23 +139,6 @@ func (l *Logger4go) AddFileHandler(filePath string, size uint, rotate byte, seq 
 	}
 	saveHandler(l, fh)
 	return fh, nil
-}
-
-// AddSyslogHandler adds a syslog handler with the specified network procotol tcp|udp, a syslog daemon ip address,
-// a log/syslog priority flag (syslog severity + facility, see syslog godoc) and a tag/prefix.
-// The syslog daemon on localhost will be used if protocol and ipaddr is "".
-//
-// AddSyslogHandler returns a SyslogHandler which can be used to directly access the SyslogHandler.out (syslog.Writer) instance
-// which can be used to write messages with a specific syslog severity and bypassing what the logger instance is set to use.
-// No default header is written when going via the syslog.Writer instance.
-func (l *Logger4go) AddSyslogHandler(protocol, ipaddr string, priority syslog.Priority, tag string) (sh *SyslogHandler, err error) {
-	sh, err = newSyslogHandler(protocol, ipaddr, priority, tag)
-	if err != nil {
-		return nil, err
-	}
-	saveHandler(l, sh)
-
-	return sh, err
 }
 
 // AddHandler adds a custom handler which conforms to the Handler interface.

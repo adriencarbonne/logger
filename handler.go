@@ -7,7 +7,6 @@ package logger
 import (
 	"errors"
 	"fmt"
-	"log/syslog"
 	"os"
 	"os/exec"
 	"strconv"
@@ -60,11 +59,6 @@ type FileHandler struct {
 	mutex    sync.Mutex
 }
 
-// Write to syslog.
-type SyslogHandler struct {
-	Out *syslog.Writer
-}
-
 func (nh *NoopHandler) Write(b []byte) (n int, err error) { return 0, nil }
 func (nh *NoopHandler) Close() error                      { return nil }
 func (nh *NoopHandler) String() string                    { return "NoopHandler" }
@@ -83,27 +77,6 @@ func (ch *ConsoleHandler) Close() error {
 
 func (ch *ConsoleHandler) String() string {
 	return "ConsoleHandler"
-}
-
-func (sh *SyslogHandler) Write(b []byte) (n int, err error) {
-	n, err = sh.Out.Write(b)
-	if err != nil {
-		return n, err
-	}
-
-	if n < len(b) {
-		return n, errors.New("Unable to write all bytes to syslog")
-	}
-
-	return n, err
-}
-
-func (sh *SyslogHandler) Close() error {
-	return sh.Out.Close()
-}
-
-func (sh *SyslogHandler) String() string {
-	return "SyslogHandler"
 }
 
 func (fh *FileHandler) Write(b []byte) (n int, err error) {
@@ -210,12 +183,10 @@ const (
 )
 
 func newStdFileHandler(filePath string) (*FileHandler, error) {
-
 	return newFileHandler(filePath, uint(def_size), def_rotate, def_seq, false, false)
 }
 
 func newFileHandler(filePath string, size uint, rotate byte, seq byte, compress, daily bool) (*FileHandler, error) {
-
 	fh := &FileHandler{filePath: filePath, size: size, rotate: rotate, seq: seq, compress: compress, daily: daily}
 	f, err := fh.rotateLog()
 	if err != nil {
@@ -227,17 +198,6 @@ func newFileHandler(filePath string, size uint, rotate byte, seq byte, compress,
 		go fh.rotateDaily()
 	}
 	return fh, nil
-}
-
-func newSyslogHandler(protocol, ipaddr string, priority syslog.Priority, tag string) (sh *SyslogHandler, err error) {
-	sh = &SyslogHandler{}
-
-	sh.Out, err = syslog.Dial(protocol, ipaddr, priority, tag)
-	if err != nil {
-		return nil, err
-	}
-
-	return sh, nil
 }
 
 func (fh *FileHandler) rotateLog() (f *os.File, err error) {
